@@ -94,7 +94,8 @@ class Follow:
             # posture error
             x_e = x_d_2 - self.x2
             y_e = y_d_2 - self.y2
-            theta_e = theta_d - self.a2
+            theta_e = self.angle_trans(theta_d - self.a2)
+            # theta_e = theta_d - self.a2
             # convert to follower local coordinate
             e_x = math.cos(self.a2) * x_e + math.sin(self.a2) * y_e
             e_y = -math.sin(self.a2) * x_e + math.cos(self.a2) * y_e
@@ -103,7 +104,7 @@ class Follow:
             # constant
             eps = 0.9
             b = 15
-            k_x = 2*eps*math.sqrt(math.pow(w_d,2) + b * math.pow(v_d,2))
+            k_x = 2*eps*math.sqrt(math.pow(w_d, 2) + b * math.pow(v_d, 2))
             k_y = b*abs(v_d)
 
             x_vel2 = v_d * math.cos(e_theta) + k_x * e_x
@@ -121,8 +122,8 @@ class Follow:
             if a_vel2 < -0.3:
                 a_vel2 = -0.3
 
-            if self.vel_1_linear < 0.01 and self.vel_1_angular < 0.01:
-                a_vel2 = 0
+            # if self.vel_1_linear < 0.01 and self.vel_1_angular < 0.01:
+            #     a_vel2 = 0
 
             self.follow.linear.x = x_vel2
             if abs(x_vel2) < 0.01:
@@ -135,8 +136,8 @@ class Follow:
             # if abs(a_vel2) < 0.01:
             #     self.follow.angular.z = 0
             self.pub.publish(self.follow)
-            print(self.followername)
-            print(a_vel2)
+            # print(self.followername)
+            # print(a_vel2)
         
 
     def turtle1_odom(self, msg):
