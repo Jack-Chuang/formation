@@ -50,7 +50,7 @@ class go_to_Goal:
                 point = self.traj[i]
                 if self.go_to_goal(point[0], point[1]):
                     
-                    #wait for other robots to arrive at the waypoints
+                    #wait for other robots arrive at the waypoints
                     while not (self.other_turtle_1_ready and self.other_turtle_2_ready):
                         self.follow.linear.x = 0
                         self.follow.angular.z = 0
@@ -64,7 +64,7 @@ class go_to_Goal:
                     continue
 
                 else:
-                    #go back to the last waypoint if the robot can't arrive 
+                    #go back to the last waypoint if the robot fail to arrive at this waypoint
                     print ('invalid goal, return to last point')
                     if self.go_to_goal(self.traj[i-1][0],self.traj[i-1][1]):
                         continue
@@ -126,7 +126,7 @@ class go_to_Goal:
 
         #PID parameters
         K_angular = [4, 1, 8]
-        K_linear = [1.5, 0.1, 3]
+        K_linear = [2, 0.1, 3]
         I = 0 
 
         desired_angle_goal, angle = 0, 0
@@ -187,6 +187,8 @@ class go_to_Goal:
             print(self.name)
             print(self.other_turtle_1_ready)
             print(self.other_turtle_2_ready)
+            print('   ')
+            print('   ')
             print('   ')
         
             if (distance < 0.1):
