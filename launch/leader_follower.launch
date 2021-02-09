@@ -11,7 +11,7 @@
 
         <node name="spawn_urdf_1" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description"/>
 
-        <node name="turtlesim_motion_pose" pkg="formation" type="try_path.py" output="screen">
+        <node name="turtlesim_motion_pose" pkg="formation" type="leader_path.py" output="screen">
             <param name="turtle" type="string" value="turtle1" />
             <param name="offset" type="double" value="0.0" />
             <param name="other_turtle1" type="string" value="turtle2" />
@@ -22,14 +22,14 @@
     <group ns="turtle2">
         <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle]"/>
         <arg name="x_pos_2" default="0.0"/>
-        <arg name="y_pos_2" default="-2.0"/>
+        <arg name="y_pos_2" default="-1.0"/>
         <arg name="z_pos_2" default="0.0"/>
 
         <param name="robot_description_2" command="$(find xacro)/xacro.py $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
         <node name="spawn_urdf_2" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger_2 -x $(arg x_pos_2) -y $(arg y_pos_2) -z $(arg z_pos_2) -param robot_description_2"/>
 
-        <node name="two_turtle_2" pkg="formation" type="try_transform.py" output="screen">
-            <param name="distance" type="double" value="2.0" />
+        <node name="two_turtle_2" pkg="formation" type="follower_path.py" output="screen">
+            <param name="distance" type="double" value="1.0" />
             <param name="bear_angle" type="int" value="-90" />
             <param name="leader_turtle" type="string" value="turtle1" />
             <param name="follower_turtle" type="string" value="turtle2" />
@@ -39,14 +39,14 @@
     <group ns="turtle3">
         <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle]"/>
         <arg name="x_pos_3" default="0.0"/>
-        <arg name="y_pos_3" default="2.0"/>
+        <arg name="y_pos_3" default="1.0"/>
         <arg name="z_pos_3" default="0.0"/>
 
         <param name="robot_description_3" command="$(find xacro)/xacro.py $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
         <node name="spawn_urdf_3" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger_3 -x $(arg x_pos_3) -y $(arg y_pos_3) -z $(arg z_pos_3) -param robot_description_3"/>
 
-        <node name="three_turtle_3" pkg="formation" type="try_transform.py" output="screen">
-            <param name="distance" type="double" value="2.0" />
+        <node name="three_turtle_3" pkg="formation" type="follower_path.py" output="screen">
+            <param name="distance" type="double" value="1.0" />
             <param name="bear_angle" type="int" value="90" />
             <param name="leader_turtle" type="string" value="turtle1" />
             <param name="follower_turtle" type="string" value="turtle3" />

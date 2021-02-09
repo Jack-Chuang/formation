@@ -1,9 +1,0 @@
-<launch>
-
-    <node name="two_turtle_2" pkg="NASA" type="try_transform.py" output="screen"/> 
-        <param name="distance" type="double" value="0.5" />
-        <param name="bear_angle" type="int" value="90" />
-        <param name="leader_turtle" type="string" value="turtle1" />
-        <param name="follower_turtle" type="string" value="turtle2" />
-
-</launch>

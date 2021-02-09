@@ -85,7 +85,7 @@ class go_to_Goal:
             y = ans[-1][1]
             ans.append([x - offset + dir*length, y])
             ans.append([x - offset + dir*length, y - 2 * dir * offset + 3])
-            ans.append([0, ans[-1][1]])
+            # ans.append([0, ans[-1][1]])
             dir *= -1
         return ans
 
@@ -114,8 +114,8 @@ class go_to_Goal:
         self.arrive.arrive = False
         #self.pub_arrive_1.publish(self.arrive)
         #self.pub_arrive_2.publish(self.arrive)
-        K_angular = [4, 1, 2]
-        K_linear = [1.2, 0.2, 1.5]
+        K_angular = [2, 1, 2]
+        K_linear = [1.2, 0.5, 1.5]
         desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
         angle = desired_angle_goal - self.a1
         angle = self.angle_trans(angle)

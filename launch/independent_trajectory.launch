@@ -11,7 +11,7 @@
 
         <node name="spawn_urdf_1" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description"/>
         
-        <node name="turtlesim_motion_pose" pkg="formation" type="try_path.py" output="screen">
+        <node name="turtlesim_motion_pose_1" pkg="formation" type="independent_paths.py" output="screen">
             <param name="turtle" type="string" value="turtle1" />
             <param name="offset" type="double" value="0.0" />
             <param name="other_turtle1" type="string" value="turtle2" />
@@ -29,7 +29,7 @@
         
         <node name="spawn_urdf_2" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger_2 -x $(arg x_pos_2) -y $(arg y_pos_2) -z $(arg z_pos_2) -param robot_description_2"/>
         
-        <node name="turtlesim_motion_pose" pkg="formation" type="try_path.py" output="screen">
+        <node name="turtlesim_motion_pose_2" pkg="formation" type="independent_paths.py" output="screen">
             <param name="turtle" type="string" value="turtle2" />
             <param name="offset" type="double" value="-1.0" />
             <param name="other_turtle1" type="string" value="turtle1" />
@@ -47,7 +47,7 @@
         
         <node name="spawn_urdf_3" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3_burger_3 -x $(arg x_pos_3) -y $(arg y_pos_3) -z $(arg z_pos_3) -param robot_description_3"/>
         
-        <node name="turtlesim_motion_pose" pkg="formation" type="try_path.py" output="screen">
+        <node name="turtlesim_motion_pose_3" pkg="formation" type="independent_paths.py" output="screen">
             <param name="turtle" type="string" value="turtle3" />
             <param name="offset" type="double" value="1.0" />
             <param name="other_turtle1" type="string" value="turtle1" />
@@ -55,7 +55,7 @@
         </node>
     </group> 
 
-    <!--include file="$(find gazebo_ros)/launch/empty_world.launch"> 
+    <include file="$(find gazebo_ros)/launch/empty_world.launch"> 
         <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/empty.world"/> 
         <arg name="paused" value="false"/> 
         <arg name="use_sim_time" value="true"/> 
@@ -63,59 +63,5 @@
         <arg name="headless" value="false"/> 
         <arg name="debug" value="false"/> 
     </include>
-
-    <arg name="1turtle" default="turtle1"/> 
-    <arg name="1offset" default="0.0"/>
-    <arg name="1other_turtle1" default="turtle2"/>
-    <arg name="1other_turtle2" default="turtle3"/>
-    <arg name="1other_turtle1_ns" default="second"/>
-    <arg name="1other_turtle2_ns" default="third"/>
-
-    <arg name="2turtle" default="turtle2"/>
-    <arg name="2offset" default="-1.0"/>
-    <arg name="2other_turtle1" default="turtle1"/>
-    <arg name="2other_turtle2" default="turtle3"/>
-    <arg name="2other_turtle1_ns" default="first"/>
-    <arg name="2other_turtle2_ns" default="third"/>
-
-    <arg name="3turtle" default="turtle3"/>
-    <arg name="3offset" default="1.0"/>
-    <arg name="3other_turtle1" default="turtle1"/>
-    <arg name="3other_turtle2" default="turtle2"/>
-    <arg name="3other_turtle1_ns" default="first"/>
-    <arg name="3other_turtle2_ns" default="second"/>
-
-    <group ns='first'>
-        <include file="$(find formation)/launch/path.launch">
-            <arg name="turtle" value="$(arg 1turtle)"/> 
-            <arg name="offset" value="(arg 1offset)"/>
-            <arg name="other_turtle1" value="(arg 1other_turtle1)"/>
-            <arg name="other_turtle2" value="(arg 1other_turtle2)"/>
-            <arg name="other_turtle1_ns" value="(arg 1other_turtle1_ns)"/>
-            <arg name="other_turtle2_ns" value="(arg 1other_turtle2_ns)"/>
-        </include>
-    </group>
-
-    <group ns='second'>
-        <include file="$(find formation)/launch/path.launch">
-            <arg name="turtle" value="(arg 2turtle)"/>
-            <arg name="offset" value="(arg 2offset)"/>
-            <arg name="other_turtle1" value="(arg 2other_turtle1)1"/>
-            <arg name="other_turtle2" value="(arg 2other_turtle2)"/>
-            <arg name="other_turtle1_ns" value="(arg 2other_turtle1_ns)"/>
-            <arg name="other_turtle2_ns" value="(arg 2other_turtle2_ns)"/>
-        </include>
-    </group>
-
-    <group ns='third'>
-        <include file="$(find formation)/launch/path.launch">
-            <arg name="turtle" value="(arg 3turtle)"/>
-            <arg name="offset" value="(arg 3offset)"/>
-            <arg name="other_turtle1" value="(arg 3other_turtle1)"/>
-            <arg name="other_turtle2" value="(arg 3other_turtle2)"/>
-            <arg name="other_turtle1_ns" value="(arg 3other_turtle1_ns)"/>
-            <arg name="other_turtle2_ns" value="(arg 3other_turtle2_ns)"/>
-        </include>
-    </group-->
     
 </launch>

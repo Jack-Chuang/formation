@@ -1,5 +1,0 @@
-<launch>
-
-    <node name="turtlesim_motion_pose_1" pkg="formation" type="try_path.py" output="screen"/>    
-
-</launch>

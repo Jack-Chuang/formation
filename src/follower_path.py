@@ -12,7 +12,7 @@ class Follow:
     def __init__(self):
         self.follow = Twist() 
         #self.points = [[4, 0], [4, 2], [0, 2], [0, 4], [4, 4], [4, 6]]
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(20)
         self.vel_1_angular = 0
         self.vel_1_linear = 0
         self.l_d = rospy.get_param('~distance')
@@ -95,6 +95,8 @@ class Follow:
             x_e = x_d_2 - self.x2
             y_e = y_d_2 - self.y2
             theta_e = self.angle_trans(theta_d - self.a2)
+            if abs(theta_e) > 3:
+                continue
             # theta_e = theta_d - self.a2
             # convert to follower local coordinate
             e_x = math.cos(self.a2) * x_e + math.sin(self.a2) * y_e
@@ -102,28 +104,35 @@ class Follow:
             e_theta = theta_e
             
             # constant
-            eps = 0.9
-            b = 15
+            eps = 1.4
+            b = 10
             k_x = 2*eps*math.sqrt(math.pow(w_d, 2) + b * math.pow(v_d, 2))
             k_y = b*abs(v_d)
 
             x_vel2 = v_d * math.cos(e_theta) + k_x * e_x
-            if (e_theta + k_x * e_theta) == 0:
+            if e_theta == 0:
                 a_vel2 = 0
             else:
                 a_vel2 = w_d + k_y * e_y * math.sin(e_theta) / e_theta + k_x * e_theta
             
-            if x_vel2 > 0.55:
-                x_vel2 = 0.55
-            if x_vel2 < -0.55:
-                x_vel2 = -0.55
-            if a_vel2 > 0.3:
-                a_vel2 = 0.3
-            if a_vel2 < -0.3:
-                a_vel2 = -0.3
+            if x_vel2 > 0.5:
+                x_vel2 = 0.5
+            if x_vel2 < -0.5:
+                x_vel2 = -0.5
+            if a_vel2 > 0.35:
+                a_vel2 = 0.35
+            if a_vel2 < -0.35:
+                a_vel2 = -0.35
 
-            # if self.vel_1_linear < 0.01 and self.vel_1_angular < 0.01:
-            #     a_vel2 = 0
+            # if a_vel2 != 0:
+            #     if abs(x_vel2/a_vel2) < 0.7:
+            #         x_vel2 += 0.1
+            #     if abs(x_vel2/a_vel2) > 2.0 and abs(x_vel2/a_vel2) < 10.0:
+            #         x_vel2 -= 0.1
+
+            if self.vel_1_linear < 0.02 and (abs(self.vel_1_angular) < 0.02):
+                 a_vel2 = 0 
+                 x_vel2 = 0
 
             self.follow.linear.x = x_vel2
             if abs(x_vel2) < 0.01:
@@ -136,8 +145,9 @@ class Follow:
             # if abs(a_vel2) < 0.01:
             #     self.follow.angular.z = 0
             self.pub.publish(self.follow)
-            # print(self.followername)
-            # print(a_vel2)
+            #print("%s vel %f ang %f" % (self.followername, x_vel2, a_vel2))
+            if a_vel2 != 0:
+                print("%s ratio" % self.followername, x_vel2/a_vel2)
         
 
     def turtle1_odom(self, msg):
