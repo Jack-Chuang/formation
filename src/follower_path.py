@@ -2,6 +2,7 @@
 import rospy
 import math
 #import sympy as sym
+import matplotlib.pyplot as plt
 from rospy.rostime import Duration
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import Twist
@@ -15,6 +16,7 @@ class Follow:
         self.rate = rospy.Rate(20)
         self.vel_1_angular = 0
         self.vel_1_linear = 0
+        self.count = 0
         self.l_d = rospy.get_param('~distance')
         self.phi_d = math.radians(rospy.get_param('~bear_angle'))
         self.leadername = rospy.get_param('~leader_turtle')
@@ -25,6 +27,7 @@ class Follow:
         self.leader_speed = rospy.Subscriber('/%s/cmd_vel' % self.leadername, Twist, self.turtle_vel_1)
         #self.pub1 = rospy.Publisher('/%s/cmd_vel' % self.leadername, Twist, queue_size=1)
         self.pub = rospy.Publisher('/%s/cmd_vel' % self.followername, Twist, queue_size=1)
+        self.log = []
 
         while not rospy.is_shutdown():
             
@@ -59,6 +62,8 @@ class Follow:
             self.rate.sleep()
             time_end = rospy.Time.now()
             duration = (time_end - time_begin).to_sec()
+            if duration == 0:
+                continue
 
             x_d_1 = self.x1 + self.l_d * math.cos(self.phi_d + self.a1)
             y_d_1 = self.y1 + self.l_d * math.sin(self.phi_d + self.a1)
@@ -146,9 +151,13 @@ class Follow:
             #     self.follow.angular.z = 0
             self.pub.publish(self.follow)
             #print("%s vel %f ang %f" % (self.followername, x_vel2, a_vel2))
-            if a_vel2 != 0:
-                print("%s ratio" % self.followername, x_vel2/a_vel2)
-        
+            self.count+=1
+            self.log.append([e_x,e_y,theta_e])
+            if self.count > 50:
+                plt.plot(self.log[1:])
+                plt.legend(['e_x','e_y','e_theta'])
+                plt.savefig('/home/jack/catkin_ws/src/formation/error_plot/%s_follower_data.png' % self.followername)
+                self.count = 0
 
     def turtle1_odom(self, msg):
         self.msg1 = msg

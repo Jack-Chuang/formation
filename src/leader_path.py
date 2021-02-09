@@ -38,7 +38,7 @@ class go_to_Goal:
         self.rate = rospy.Rate(10)
         #self.traj = [[3, -0.5, 0], [5.5, -0.5, 0], [5.5, 2.5, 0], [3.5, 2.5, 0], [3.5, 3.5, 0], [5.5, 3.5, 0], [5.5, 6.5, 0]]
         self.offset = rospy.get_param('~offset')
-        self.traj = self.traj_trans(3, self.offset, 5)
+        self.traj = self.traj_trans(3, self.offset, 10)
         self.traj.pop(0)
 
         while not rospy.is_shutdown():

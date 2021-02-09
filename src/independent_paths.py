@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 import rospy
 import math
+import matplotlib.pyplot as plt
 #import sympy as sym
 from rospy.rostime import Duration
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
@@ -36,22 +37,30 @@ class go_to_Goal:
         #self.pub_arrive_1 = rospy.Publisher('%s/%s_arrive' % (self.othersns1, self.name), To_Goal, queue_size=1)
         #self.pub_arrive_2 = rospy.Publisher('%s/%s_arrive' % (self.othersns2, self.name), To_Goal, queue_size=1)
         self.rate = rospy.Rate(10)
+        self.rest_rate = rospy.Rate(100)
         #self.traj = [[3, -0.5, 0], [5.5, -0.5, 0], [5.5, 2.5, 0], [3.5, 2.5, 0], [3.5, 3.5, 0], [5.5, 3.5, 0], [5.5, 6.5, 0]]
         self.offset = rospy.get_param('~offset')
         self.traj = self.traj_trans(3, self.offset, 5)
+        self.log = []
 
         while not rospy.is_shutdown():
             for i in range(len(self.traj)):
                 point = self.traj[i]
                 if self.go_to_goal(point[0], point[1]):
+                    
                     while (self.vel_1_linear != 0) or (self.vel_2_linear != 0) or (self.vel_1_angular != 0) or (self.vel_2_angular != 0):
                         self.follow.linear.x = 0
                         self.follow.angular.z = 0
                         self.pub_vel.publish(self.follow)
                         self.rate.sleep()
+                        
                         #self.pub_arrive_1.publish(self.arrive)
-                        #self.pub_arrive_2.publish(self.arrive)
+                        #self.pub_arrive_2.publish(self.arrive) 
+                    plt.plot(self.log[1:])
+                    plt.legend(['e_distance','e_angle'])
+                    plt.savefig('/home/jack/catkin_ws/src/formation/error_plot/%spath_data.png' % self.name)
                     continue
+
                 else:
                     print ('invalid goal, return to last point')
                     if self.go_to_goal(self.traj[i-1][0],self.traj[i-1][1]):
@@ -133,6 +142,8 @@ class go_to_Goal:
             desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
             angle = desired_angle_goal - self.a1
             angle = self.angle_trans(angle)
+            if duration == 0:
+                continue
 
             angular_speed = (angle * K_angular[0] + K_angular[1] * duration * (angle+angle_0)/2 + K_angular[2] * (angle-angle_0)/duration)
             linear_speed = 0
@@ -155,6 +166,8 @@ class go_to_Goal:
             self.rate.sleep()
             time_end = rospy.Time.now()
             duration = (time_end - time_begin).to_sec()
+            if duration == 0:
+                continue
             desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
             angle = desired_angle_goal - self.a1
             angle = self.angle_trans(angle)
@@ -179,6 +192,9 @@ class go_to_Goal:
             self.pub = rospy.Publisher('/%s/cmd_vel' % self.name, Twist, queue_size=1)
             self.pub_vel.publish(self.follow)
             #print ('x=', self.x, 'y=', self.y)
+            self.log.append([distance,angle])
+
+
             if (rospy.Time.now() - mission_time_begin).to_sec() > 60:
                 return False
             if (distance < 0.02):

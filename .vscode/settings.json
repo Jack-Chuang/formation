@@ -3,5 +3,10 @@
         "/opt/ros/ardent/lib/python3.5/site-packages",
         "/home/jack/catkin_ws/devel/lib/python2.7/dist-packages",
         "/opt/ros/kinetic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/ardent/lib/python3.5/site-packages",
+        "/home/jack/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/kinetic/lib/python2.7/dist-packages"
     ]
 }
