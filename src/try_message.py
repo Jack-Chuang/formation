@@ -6,23 +6,22 @@ from rospy.rostime import Duration
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from formation.msg import To_Goal
+from formation.msg import arrive, ready
 from sensor_msgs.msg import LaserScan
 
 class go_to_Goal:
     def __init__(self):
+        #initialization
         self.follow = Twist()
-        self.follower1 = Twist()
-        self.follower2 = Twist()
-        self.arrive = To_Goal()
-        self.other_arrive_1 = To_Goal()
-        self.other_arrive_2 = To_Goal()
+        self.arrive = arrive()
+        self.ready = ready()
+        self.other_turtle_1_ready = ready()
+        self.other_turtle_2_ready = ready()
         self.scan = LaserScan()
         self.rate = rospy.Rate(10)
         self.sleeper = rospy.Rate(5)
         self.x, self.y, self.z, self.a1 = 0, 0, 0, 0
-        self.vel_1_linear, self.vel_1_angular, self.vel_2_linear, self.vel_2_angular = 0, 0, 0, 0
-        self.other_arrive_1, self.other_arrive_2 = False, False
+        self.arrive, self.ready, self.other_turtle_1_ready, self.other_turtle_2_ready = False, False, False, False
 
         #All the parameter
         self.name = rospy.get_param('~turtle')
@@ -32,13 +31,14 @@ class go_to_Goal:
 
         #All the publisher
         self.pub_vel = rospy.Publisher('/%s/cmd_vel' % self.name, Twist, queue_size=1)
-        self.pub_vel_1 = rospy.Publisher('/%s/cmd_vel' % self.others1, Twist, queue_size=1)
-        self.pub_vel_2 = rospy.Publisher('/%s/cmd_vel' % self.others2, Twist, queue_size=1)
+        self.pub_arrive = rospy.Publisher('%s_arrive' % self.name, arrive, queue_size=1)
+        self.pub_ready = rospy.Publisher('%s_ready' % self.name, ready, queue_size=1)
 
         #All the subscriber
         self.turtle = rospy.Subscriber('/%s/odom' % self.name, Odometry, self.turtle_odom)
-        self.other_turtle1 = rospy.Subscriber('/%s/cmd_vel' % self.others1, Twist, self.turtle_vel_1)
-        self.other_turtle2 = rospy.Subscriber('/%s/cmd_vel' % self.others2, Twist, self.turtle_vel_2)
+        self.other_turtle1_ready = rospy.Subscriber('%s_ready' % self.others1, ready, self.turtle_1_ready)
+        self.other_turtle2_ready = rospy.Subscriber('%s_ready' % self.others2, ready, self.turtle_2_ready)
+        self.laser_scan = rospy.Subscriber('/%s/scan' % self.name, LaserScan, self.turtle_scan)
         
         #generate trajectory
         self.traj = self.traj_trans(3, self.offset, 5)
@@ -50,38 +50,38 @@ class go_to_Goal:
                 point = self.traj[i]
                 if self.go_to_goal(point[0], point[1]):
                     
-                    while (self.vel_1_linear != 0) or (self.vel_2_linear != 0) or (self.vel_1_angular != 0) or (self.vel_2_angular != 0):
+                    #wait for other robots to arrive at the waypoints
+                    while not (self.other_turtle_1_ready and self.other_turtle_2_ready):
                         self.follow.linear.x = 0
                         self.follow.angular.z = 0
                         self.pub_vel.publish(self.follow)
                         self.rate.sleep()
-                        
-                        #self.pub_arrive_1.publish(self.arrive)
-                        #self.pub_arrive_2.publish(self.arrive) 
+
+                    #plot the error    
                     plt.plot(self.log[1:])
                     plt.legend(['e_distance','e_angle'])
                     plt.savefig('/home/jack/catkin_ws/src/formation/error_plot/%spath_data.png' % self.name)
                     continue
 
                 else:
+                    #go back to the last waypoint if the robot can't arrive 
                     print ('invalid goal, return to last point')
                     if self.go_to_goal(self.traj[i-1][0],self.traj[i-1][1]):
                         continue
 
             self.follow.linear.x = 0
             self.follow.angular.z = 0
-            self.pub = rospy.Publisher('/%s/cmd_vel' % self.name, Twist, queue_size=1)
             self.pub_vel.publish(self.follow)
             break
     
     def turtle_scan(self, msg):
-        self.other_scan = msg
+        self.scan = msg
 
-    def turtle_arrive_1(self, msg):
-        self.other_arrive_1 = msg
+    def turtle_1_ready(self, msg):
+        self.other_turtle_1_ready = msg
 
-    def turtle_arrive_2(self, msg):
-        self.other_arrive_2 = msg    
+    def turtle_2_ready(self, msg):
+        self.other_turtle_2_ready = msg    
 
     def turtle_odom(self, msg):
         self.msg1 = msg
@@ -95,6 +95,7 @@ class go_to_Goal:
         self.a1 = yaw
 
     def traj_trans(self, length, offset, num):
+        #trajectory generator
         dir = 1
         ans = [[0, offset]]
         for i in range(1, num):
@@ -107,16 +108,6 @@ class go_to_Goal:
             dir *= -1
         return ans
 
-    def turtle_vel_1(self, msg):
-        self.msg111 = msg
-        self.vel_1_linear = self.msg111.linear.x
-        self.vel_1_angular = self.msg111.angular.z
-    
-    def turtle_vel_2(self, msg):
-        self.msg222 = msg
-        self.vel_2_linear = self.msg222.linear.x
-        self.vel_2_angular = self.msg222.angular.z
-
     def angle_trans(self, angle):
         #calculate the correct difference between two angles
         self.angle = angle
@@ -128,54 +119,22 @@ class go_to_Goal:
 
     def go_to_goal(self, x_goal, y_goal):
         mission_time_begin = rospy.Time.now()
-        #keep the robot on the correct orientation
-        #self.arrive.arrive = False
-        #self.pub_arrive_1.publish(self.arrive)
-        #self.pub_arrive_2.publish(self.arrive)
+        self.ready = False
+        self.arrive = False
+        self.pub_arrive.publish(self.arrive)
+        self.pub_ready.publish(self.ready)
+
+        #PID parameters
         K_angular = [4, 1, 8]
         K_linear = [1.5, 0.1, 3]
-        I = 0
-        desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
-        angle = desired_angle_goal - self.a1
-        angle = self.angle_trans(angle)
-        while (abs(angle) > 0.01):
-            desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
-            angle_0 = desired_angle_goal - self.a1
-            time_begin = rospy.Time.now()
-            self.rate.sleep()
-            time_end = rospy.Time.now()
-            duration = (time_end - time_begin).to_sec()
-            desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
-            angle = desired_angle_goal - self.a1
-            angle = self.angle_trans(angle)
-            if duration == 0:
-                continue
-            
-            I = I + K_angular[1] * duration * (angle+angle_0)/2
+        I = 0 
 
-            angular_speed = (angle * K_angular[0] + I + K_angular[2] * (angle-angle_0)/duration)
-            
-            linear_speed = 0
-            if angular_speed > 0.2:
-                angular_speed = 0.2
-            if angular_speed < -0.2:
-                angular_speed = -0.2
-
-            self.follow.linear.x = linear_speed
-            self.follow.angular.z = angular_speed
-            self.pub_vel.publish(self.follow)  
-
-        # self.rate.sleep()
-
-        # while (self.vel_1_angular != 0) or (self.vel_2_angular != 0):
-        #     self.follow.linear.x = 0
-        #     self.follow.angular.z = 0
-        #     self.pub_vel.publish(self.follow)
+        desired_angle_goal, angle = 0, 0
                 
         I_linear = 0
         I_angular = 0
 
-        while (True):
+        while not (self.arrive):
 
             desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
             angle_0 = desired_angle_goal - self.a1
@@ -201,7 +160,7 @@ class go_to_Goal:
            
             linear_speed = distance * K_linear[0] + I_linear + K_linear[2] * (distance-distance_0)/duration
 
-            #angular speed and linear speed control
+            #angular speed and linear speed limitation
             if linear_speed > 0.3:
                 linear_speed = 0.3
             if angular_speed > 0.1:
@@ -209,41 +168,76 @@ class go_to_Goal:
             if angular_speed < -0.1:
                 angular_speed = -0.1
 
+            
             #check if robot is in formation with others
-            # if abs(self.scan.ranges[90]) == math.inf:
-            #     self.follow.linear.x = 0
-            #     self.follow.angular.z = 0
-            #     self.pub_vel.publish(self.follow)
+            infinity = float('inf')
+            if len(self.scan.ranges) > 0:
+                if self.other_turtle_1_ready or self.other_turtle_2_ready:
+                    pass
+                else:
+                    while (abs(self.scan.ranges[90]) == infinity) and abs(self.scan.ranges[-90]) == infinity:
+                        self.follow.linear.x = 0
+                        self.follow.angular.z = 0
+                        self.pub_vel.publish(self.follow)
 
-            #wait for other robot to turn to the correct orientation
             self.follow.linear.x = linear_speed
             self.follow.angular.z = angular_speed
-            self.pub = rospy.Publisher('/%s/cmd_vel' % self.name, Twist, queue_size=1)
             self.pub_vel.publish(self.follow)
-            #print ('x=', self.x, 'y=', self.y)
             self.log.append([distance,angle])
-
-
-            if (rospy.Time.now() - mission_time_begin).to_sec() > 60:
-                return False
+            print(self.name)
+            print(self.other_turtle_1_ready)
+            print(self.other_turtle_2_ready)
+            print('   ')
+        
             if (distance < 0.1):
                 self.follow.linear.x = 0
                 self.follow.angular.z = 0
                 self.pub_vel.publish(self.follow)
                 self.rate.sleep()
-                #self.arrive.arrive = True
-                #self.pub_arrive_1.publish(self.arrive)
-                #self.pub_arrive_2.publish(self.arrive)
-                return True
+                desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
+                self.arrive = True
+
+        #After arriving at a waypoint, turn the robot until it faces the next waypoint       
+        while (abs(angle) > 0.01):
+            desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
+            angle_0 = desired_angle_goal - self.a1
+            time_begin = rospy.Time.now()
+            self.rate.sleep()
+            time_end = rospy.Time.now()
+            duration = (time_end - time_begin).to_sec()
+            desired_angle_goal = math.atan2(y_goal - self.y, x_goal - self.x)
+            angle = desired_angle_goal - self.a1
+            angle = self.angle_trans(angle)
+            if duration == 0:
+                continue
             
+            I = I + K_angular[1] * duration * (angle+angle_0)/2
+
+            angular_speed = (angle * K_angular[0] + I + K_angular[2] * (angle-angle_0)/duration)
+            
+            linear_speed = 0
+            if angular_speed > 0.2:
+                angular_speed = 0.2
+            if angular_speed < -0.2:
+                angular_speed = -0.2
+
+            self.follow.linear.x = linear_speed
+            self.follow.angular.z = angular_speed
+            self.pub_vel.publish(self.follow) 
+        
+        self.ready = True
+        self.pub_ready.publish(self.ready)
+
+        if (rospy.Time.now() - mission_time_begin).to_sec() > 60:
+            return False
+
+        return True
 
 if __name__ == '__main__':
-
 
     rospy.init_node('turtlesim_motion_pose', anonymous=True)
     try:
         f = go_to_Goal()
-
 
     except rospy.ROSInterruptException:
         rospy.loginfo("node terminated.")

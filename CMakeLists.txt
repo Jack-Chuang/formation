@@ -50,7 +50,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   To_Goal.msg
+   arrive.msg
+   ready.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -116,10 +117,9 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
- include
-  ${catkin_INCLUDE_DIRS}
-)
+#include_directories(
+#  ${catkin_INCLUDE_DIRS include} 
+#)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
