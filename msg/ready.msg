@@ -1,1 +1,2 @@
-bool ready
+int32 ready
+

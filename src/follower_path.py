@@ -1,7 +1,6 @@
 #!/usr/bin/env python 
 import rospy
 import math
-#import sympy as sym
 import matplotlib.pyplot as plt
 from rospy.rostime import Duration
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
@@ -11,41 +10,31 @@ from nav_msgs.msg import Odometry
 class Follow:
 
     def __init__(self):
+        #initialization
         self.follow = Twist() 
-        #self.points = [[4, 0], [4, 2], [0, 2], [0, 4], [4, 4], [4, 6]]
         self.rate = rospy.Rate(20)
         self.vel_1_angular = 0
         self.vel_1_linear = 0
         self.count = 0
+        self.x1, self.y1, self.z1, self.a1, self.x2, self.y2, self.z2, self.a2 = 0, 0, 0, 0, 0, 0, 0, 0
+
+        #All the parameters
         self.l_d = rospy.get_param('~distance')
         self.phi_d = math.radians(rospy.get_param('~bear_angle'))
         self.leadername = rospy.get_param('~leader_turtle')
         self.followername = rospy.get_param('~follower_turtle')
-        self.x1, self.y1, self.z1, self.a1, self.x2, self.y2, self.z2, self.a2 = 0, 0, 0, 0, 0, 0, 0, 0
+
+        #All the publisher
+        self.pub = rospy.Publisher('/%s/cmd_vel' % self.followername, Twist, queue_size=1)
+
+        #All the subscriber
         self.turtle1 = rospy.Subscriber('/%s/odom' % self.leadername, Odometry, self.turtle1_odom)
         self.turtle2 = rospy.Subscriber('/%s/odom' % self.followername, Odometry, self.turtle2_odom)
         self.leader_speed = rospy.Subscriber('/%s/cmd_vel' % self.leadername, Twist, self.turtle_vel_1)
-        #self.pub1 = rospy.Publisher('/%s/cmd_vel' % self.leadername, Twist, queue_size=1)
-        self.pub = rospy.Publisher('/%s/cmd_vel' % self.followername, Twist, queue_size=1)
+        
         self.log = []
 
         while not rospy.is_shutdown():
-            
-            #get the next goal point    
-            # for i in range(len(self.points) - 1):
-            #     if (self.a1 == 0) or (self.a1 == 180):
-            #         x_goal = self.points[i][0]
-            #         y_goal = self.points[i][1]
-
-            #     if (self.a1 == 90) or (self.a1 == 270):
-            #         x_goal = self.points[i][0]
-            #         y_goal = self.points[i][1]
-
-            # #P-control for the leader
-            # K_linear = 0.5
-            # distance = abs(math.sqrt(((x_goal - self.x1) ** 2) + ((y_goal - self.y1) ** 2)))
-
-            # linear_speed = distance * K_linear
             
             k = 0
             # calculate desire postures p_d
@@ -55,6 +44,7 @@ class Follow:
                 else:
                     k = 1
 
+            #implement LYAPUNOV STABLE TIME VARYING STATE TRACKING CONTROLLER
             x_d_0 = self.x1 + self.l_d * math.cos(self.phi_d + self.a1)
             y_d_0 = self.y1 + self.l_d * math.sin(self.phi_d + self.a1)
 
@@ -102,7 +92,7 @@ class Follow:
             theta_e = self.angle_trans(theta_d - self.a2)
             if abs(theta_e) > 3:
                 continue
-            # theta_e = theta_d - self.a2
+
             # convert to follower local coordinate
             e_x = math.cos(self.a2) * x_e + math.sin(self.a2) * y_e
             e_y = -math.sin(self.a2) * x_e + math.cos(self.a2) * y_e
@@ -129,12 +119,6 @@ class Follow:
             if a_vel2 < -0.35:
                 a_vel2 = -0.35
 
-            # if a_vel2 != 0:
-            #     if abs(x_vel2/a_vel2) < 0.7:
-            #         x_vel2 += 0.1
-            #     if abs(x_vel2/a_vel2) > 2.0 and abs(x_vel2/a_vel2) < 10.0:
-            #         x_vel2 -= 0.1
-
             if self.vel_1_linear < 0.02 and (abs(self.vel_1_angular) < 0.02):
                  a_vel2 = 0 
                  x_vel2 = 0
@@ -147,16 +131,15 @@ class Follow:
             self.follow.angular.x = 0
             self.follow.angular.y = 0
             self.follow.angular.z = a_vel2
-            # if abs(a_vel2) < 0.01:
-            #     self.follow.angular.z = 0
             self.pub.publish(self.follow)
-            #print("%s vel %f ang %f" % (self.followername, x_vel2, a_vel2))
+            
             self.count+=1
             self.log.append([e_x,e_y,theta_e])
             if self.count > 50:
                 plt.plot(self.log[1:])
                 plt.legend(['e_x','e_y','e_theta'])
                 plt.savefig('/home/jack/catkin_ws/src/formation/error_plot/%s_follower_data.png' % self.followername)
+                plt.clf()
                 self.count = 0
 
     def turtle1_odom(self, msg):
