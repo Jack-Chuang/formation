@@ -1,5 +1,5 @@
 # formation
-formation control for swarm robots
+formation control for swarm robots in empty world
 
 This is the code of phase one formation control simulation tryouts. 
 
